@@ -493,6 +493,8 @@
   </select>
   <label for="cloudSync">همگام‌سازی ابری:</label>
   <input type="checkbox" id="cloudSync">
+  <label for="speechEnabled">فعال‌سازی گفتار:</label>
+  <input type="checkbox" id="speechEnabled">
   <button onclick="saveSettings()">ذخیره</button>
   <button onclick="closeSettings()">بستن</button>
 </div>
@@ -542,7 +544,7 @@
 
 <script>
   const API_URL = "https://api.gapgpt.app/v1/chat/completions";
-  const API_KEY = "sk-0T2xeU1JKJ1HaEudLwPRv9gHkAIA717dqItUpJgYFFytxmzI";
+  const API_KEY = "sk-mKlm4Ws6vVQojvq88fDaO7OV3ZvwcqkB4mFAENJxXCzvDswz";
   const CLOUD_API = "https://api.example.com/radbot/sync"; // جایگذاری با API واقعی
   const ENCRYPTION_KEY = "RadBotSecretKey";
   let conversations = [{ id: Date.now(), messages: [] }];
@@ -551,10 +553,11 @@
   let offlineModel = null;
   let editingMessageIndex = null;
   let isTyping = false;
+  let speechEnabled = localStorage.getItem("radbot-speech") === 'true';
 
   const translations = {
     fa: {
-      welcome: "سلام! من RadBot هستم. می‌توانید پیام بنویسید.",
+      welcome: "سلام! من RadBot هستم. می‌توانید پیام بنویسید یا پاسخ‌ها را بشنوید.",
       placeholder: "پیام خود را بنویسید...",
       history: "تاریخچه",
       newConversation: "مکالمه جدید",
@@ -569,16 +572,18 @@
       customBg: "رنگ پس‌زمینه:",
       language: "زبان:",
       cloudSync: "همگام‌سازی ابری:",
+      speechEnabled: "فعال‌سازی گفتار:",
       save: "ذخیره",
       close: "بستن",
       error: "خطایی رخ داد. لطفاً دوباره امتحان کنید.",
       offline: "حالت آفلاین: پاسخ‌ها از مدل محلی تولید می‌شوند.",
       edit: "ویرایش",
       copy: "کپی",
-      preview: "پیش‌نمایش"
+      preview: "پیش‌نمایش",
+      speak: "پخش صوتی"
     },
     en: {
-      welcome: "Hello! I'm RadBot. You can type a message.",
+      welcome: "Hello! I'm RadBot. You can type a message or listen to responses.",
       placeholder: "Type your message...",
       history: "History",
       newConversation: "New Conversation",
@@ -593,13 +598,15 @@
       customBg: "Custom Background Color:",
       language: "Language:",
       cloudSync: "Cloud Sync:",
+      speechEnabled: "Enable Speech:",
       save: "Save",
       close: "Close",
       error: "An error occurred. Please try again.",
       offline: "Offline mode: Responses are generated from a local model.",
       edit: "Edit",
       copy: "Copy",
-      preview: "Preview"
+      preview: "Preview",
+      speak: "Play Audio"
     }
   };
 
@@ -654,6 +661,16 @@
     document.getElementById("sendBtn").disabled = !enabled;
   }
 
+  function speakText(text) {
+    if (!speechEnabled) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'fa-IR';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    window.speechSynthesis.speak(utterance);
+  }
+
   async function appendMessage(role, text, instant = false, timestamp = new Date().toLocaleString('fa-IR', { hour: '2-digit', minute: '2-digit' }), index = null) {
     const chat = document.getElementById("chat");
     const msg = document.createElement("div");
@@ -671,6 +688,13 @@
       setTimeout(() => copyBtn.textContent = translations[currentLanguage].copy, 2000);
     };
     actions.appendChild(copyBtn);
+
+    if (role === "bot") {
+      const speakBtn = document.createElement("button");
+      speakBtn.textContent = translations[currentLanguage].speak;
+      speakBtn.onclick = () => speakText(text);
+      actions.appendChild(speakBtn);
+    }
 
     if (role === "user") {
       const editBtn = document.createElement("button");
@@ -742,6 +766,9 @@
       isTyping = false;
       document.getElementById("stopBtn").style.display = "none";
       showNotification("RadBot", text.slice(0, 50) + "...");
+      if (speechEnabled) {
+        speakText(text);
+      }
     }
   }
 
@@ -770,6 +797,7 @@
     document.getElementById("stopBtn").style.display = "none";
     setInputState(true);
     document.getElementById("typingIndicator").style.display = "none";
+    window.speechSynthesis.cancel();
   }
 
   function openPreviewModal(htmlContent) {
@@ -941,6 +969,15 @@
     const conv = getCurrentConversation();
     conv.messages.push({ role: "user", content: message, timestamp: new Date().toLocaleString('fa-IR') });
 
+    // Check for predefined question
+    if (message.trim() === "توسط چه کسی ساخته شدی") {
+      const reply = "من توسط راد مهر محمدی به شماره تلفن 09173067537 ساخته شدم 😎";
+      conv.messages.push({ role: "assistant", content: reply, timestamp: new Date().toLocaleString('fa-IR') });
+      await appendMessage("bot", reply);
+      updateDocument();
+      return;
+    }
+
     try {
       const cacheKey = `${currentConversationId}:${message}`;
       if (responseCache.has(cacheKey)) {
@@ -974,7 +1011,7 @@
       });
 
       if (!res.ok) {
-        throw new Error(`API request failed with status ${res.status}`);
+        throw new Error(`اعتبار شما تمام شد برای استفاده ی دوباره اعتبار خود را شارژکنید ${res.status}`);
       }
 
       const data = await res.json();
@@ -1017,6 +1054,7 @@
     const conv = getCurrentConversation();
     const lastMessage = conv.messages?.slice(-1)[0]?.content || '';
     const suggestions = [
+      "توسط چه کسی ساخته شدی",
       "لطفاً بیشتر توضیح بده.",
       "این رو به زبان ساده‌تر بگو.",
       "مثال بزن.",
@@ -1081,6 +1119,7 @@
     document.getElementById("settingsModal").querySelectorAll("label")[2].textContent = translations[currentLanguage].customBg;
     document.getElementById("settingsModal").querySelectorAll("label")[3].textContent = translations[currentLanguage].language;
     document.getElementById("settingsModal").querySelectorAll("label")[4].textContent = translations[currentLanguage].cloudSync;
+    document.getElementById("settingsModal").querySelectorAll("label")[5].textContent = translations[currentLanguage].speechEnabled;
     document.getElementById("settingsModal").querySelectorAll("button")[0].textContent = translations[currentLanguage].save;
     document.getElementById("settingsModal").querySelectorAll("button")[1].textContent = translations[currentLanguage].close;
     document.getElementById("editModal").querySelector("h3").textContent = translations[currentLanguage].edit;
@@ -1098,6 +1137,7 @@
     document.getElementById("customBg").value = localStorage.getItem("radbot-bg") || "#121212";
     document.getElementById("languageSelect").value = currentLanguage;
     document.getElementById("cloudSync").checked = localStorage.getItem("radbot-cloud") === 'true';
+    document.getElementById("speechEnabled").checked = speechEnabled;
   }
 
   function closeSettings() {
@@ -1111,9 +1151,11 @@
     const bgColor = document.getElementById("customBg").value;
     const language = document.getElementById("languageSelect").value;
     const cloudSync = document.getElementById("cloudSync").checked;
+    speechEnabled = document.getElementById("speechEnabled").checked;
     applyTheme(theme, accentColor, bgColor);
     updateLanguage(language);
     localStorage.setItem("radbot-cloud", cloudSync);
+    localStorage.setItem("radbot-speech", speechEnabled);
     closeSettings();
   }
 
