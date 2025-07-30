@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="fa" manifest="app.manifest">
+<head>
+  <meta charset="UTF-8">
+  <title>RadBot 🤖</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#121212">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="icon" href="/1.png" type="image/png">
+  <link rel="apple-touch-icon" href="/1.png">
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.5.0/dist/transformers.min.js" defer></script>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --text-color: #eee;
+      --accent-color: #00ffff;
+      --bot-color: #a5d6a7;
+      --user-color: #4fc3f7;
+      --input-bg: #222;
+      --input-border: #555;
+      --sidebar-bg: #1f1f1f;
+      --chat-bg: linear-gradient(135deg, #121212, #1a1a1a);
+      --bubble-bg-user: #007acc;
+      --bubble-bg-bot: #2d7a3e;
+    }
+
+    .light-theme {
+      --bg-color: #f2f2f2;
+      --text-color: #222;
+      --accent-color: #007acc;
+      --bot-color: #2d7a3e;
+      --user-color: #005f99;
+      --input-bg: #fff;
+      --input-border: #ccc;
+      --sidebar-bg: #e0e0e0;
+      --chat-bg: linear-gradient(135deg, #f2f2f2, #e6e6e6);
+      --bubble-bg-user: #005f99;
+      --bubble-bg-bot: #2d7a3e;
+    }
+
+    .custom-theme { /* برای تم‌های سفارشی */ }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 18px;
+      direction: rtl;
+      background: var(--bg-color);
+      color: var(--text-color);
+      overflow: hidden;
+    }
+
+    #canvasBg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      opacity: 0.3;
+    }
+
+    #mainContainer {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      transition: all 0.3s ease;
+    }
+
+    #chatSection {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--chat-bg);
+      border-radius: 10px;
+      margin: 5px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      transition: margin 0.3s ease;
+    }
+
+    .fullscreen #chatSection {
+      margin: 0;
+      border-radius: 0;
+    }
+
+    header, footer {
+      background: var(--sidebar-bg);
+      padding: 15px;
+      text-align: center;
+      font-size: 22px;
+      color: var(--accent-color);
+      transition: background 0.3s ease;
+    }
+
+    header { border-bottom: 1px solid var(--input-border); }
+    footer { font-size: 16px; border-top: 1px solid var(--input-border); }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      margin: 15px 10px;
+      padding: 12px 18px;
+      border-radius: 15px;
+      max-width: 70%;
+      position: relative;
+      animation: waveIn 0.5s ease-in;
+      white-space: pre-wrap;
+      background: var(--bubble-bg-user);
+      color: #fff;
+      transition: transform 0.2s ease;
+    }
+
+    .msg:hover {
+      transform: scale(1.02);
+    }
+
+    .user { margin-left: auto; text-align: right; }
+    .bot { background: var(--bubble-bg-bot); margin-right: auto; }
+
+    .msg:hover .msg-actions {
+      display: flex;
+    }
+
+    .msg-actions {
+      display: none;
+      position: absolute;
+      top: -20px;
+      left: 10px;
+      gap: 5px;
+    }
+
+    .msg-actions button {
+      background: #444;
+      color: #fff;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 3px;
+    }
+
+    .msg-actions button:hover {
+      background: #555;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: #ccc;
+      margin-right: 10px;
+      display: block;
+    }
+
+    .markdown-body { font-size: 16px; }
+    .markdown-body a { color: var(--accent-color); text-decoration: underline; }
+    .markdown-body ul, .markdown-body ol { padding-right: 20px; }
+    .markdown-body code { background: #333; padding: 2px 4px; border-radius: 4px; }
+    .markdown-body pre { background: var(--input-bg); padding: 10px; border-radius: 6px; }
+
+    #inputBox {
+      display: flex;
+      padding: 10px;
+      background: var(--sidebar-bg);
+      gap: 8px;
+      border-top: 1px solid var(--input-border);
+    }
+
+    #input {
+      flex: 1;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-color);
+      padding: 12px;
+      border-radius: 6px;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 16px;
+      resize: none;
+      transition: border-color 0.3s ease, background-color 0.3s ease;
+    }
+
+    #input:focus {
+      border-color: var(--accent-color);
+      outline: none;
+      animation: pulseInput 2s infinite;
+    }
+
+    @keyframes pulseInput {
+      0%, 100% { background-color: var(--input-bg); border-color: var(--input-border); }
+      50% { background-color: #2a2a2a; border-color: var(--accent-color); }
+    }
+
+    button {
+      background: linear-gradient(135deg, #333, #444);
+      color: var(--accent-color);
+      border: none;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: transform 0.2s ease, background 0.3s ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: scale(1.05);
+      background: linear-gradient(135deg, #444, #555);
+    }
+
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #loading, #typingIndicator {
+      text-align: center;
+      font-size: 14px;
+      color: var(--accent-color);
+      margin: 10px;
+    }
+
+    #loading { display: none; }
+
+    .typing { display: inline-block; animation: blink 1s steps(1) infinite; }
+
+    @keyframes blink { 0%, 50%, 100% { opacity: 1; } 25%, 75% { opacity: 0; } }
+    @keyframes waveIn { from { opacity: 0; transform: translateY(20px) rotateX(-10deg); } to { opacity: 1; transform: translateY(0) rotateX(0); } }
+
+    pre.code-block {
+      background: var(--input-bg);
+      color: #0f0;
+      padding: 15px;
+      border-radius: 8px;
+      position: relative;
+      overflow-x: auto;
+      margin: 10px 0;
+      font-size: 14px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .code-block-buttons {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      display: flex;
+      gap: 5px;
+    }
+
+    .copy-btn, .preview-btn {
+      background: #444;
+      color: #fff;
+      font-size: 12px;
+      border: none;
+      padding: 4px 8px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: background 0.3s ease;
+    }
+
+    .copy-btn:hover, .preview-btn:hover { background: #555; }
+
+    #previewModal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--sidebar-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      width: 80%;
+      max-width: 800px;
+      height: 80%;
+      max-height: 600px;
+      color: var(--text-color);
+    }
+
+    #previewModal h3 {
+      margin-top: 0;
+      color: var(--accent-color);
+    }
+
+    #previewIframe {
+      width: 100%;
+      height: calc(100% - 60px);
+      border: none;
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    #previewModal button {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    #historySidebar {
+      width: 300px;
+      background: var(--sidebar-bg);
+      color: var(--text-color);
+      padding: 20px;
+      overflow-y: auto;
+      border-left: 1px solid #333;
+      transition: width 0.3s ease;
+      resize: horizontal;
+      min-width: 200px;
+      max-width: 400px;
+    }
+
+    #historySidebar h3 {
+      margin-top: 0;
+      border-bottom: 1px solid #444;
+      padding-bottom: 10px;
+      text-align: center;
+      color: var(--accent-color);
+    }
+
+    #historySearch {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-color);
+      font-family: 'Vazirmatn', sans-serif;
+    }
+
+    .history-msg {
+      border-bottom: 1px dashed #555;
+      padding: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s ease;
+    }
+
+    .history-msg:hover { background: #333; }
+    .history-msg.active { background: #444; }
+
+    .conversation-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    #themeToggle, #settingsBtn, #fullscreenBtn {
+      background: linear-gradient(135deg, #333, #444);
+      color: var(--accent-color);
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      position: fixed;
+      top: 10px;
+    }
+
+    #themeToggle { left: 10px; }
+    #settingsBtn { left: 50px; }
+    #fullscreenBtn { left: 90px; }
+
+    #themeToggle:hover, #settingsBtn:hover, #fullscreenBtn:hover {
+      transform: scale(1.05);
+    }
+
+    #settingsModal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--sidebar-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      width: 350px;
+      color: var(--text-color);
+    }
+
+    #settingsModal h3 {
+      margin-top: 0;
+      color: var(--accent-color);
+    }
+
+    #settingsModal select, #settingsModal input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-color);
+    }
+
+    #settingsModal button {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    #editModal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--sidebar-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      width: 350px;
+      color: var(--text-color);
+    }
+
+    #editModal textarea {
+      width: 100%;
+      height: 100px;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-color);
+      font-family: 'Vazirmatn', sans-serif;
+    }
+
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+    }
+
+    #suggestions {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      background: var(--sidebar-bg);
+      overflow-x: auto;
+    }
+
+    .suggestion {
+      background: #333;
+      color: var(--text-color);
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .suggestion:hover { background: #444; }
+
+    .error-message {
+      background: #d32f2f;
+      color: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      margin: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="canvasBg"></canvas>
+<div id="overlay"></div>
+<div id="settingsModal">
+  <h3>تنظیمات</h3>
+  <label for="themeSelect">انتخاب تم:</label>
+  <select id="themeSelect">
+    <option value="dark">تیره</option>
+    <option value="light">روشن</option>
+    <option value="custom">سفارشی</option>
+  </select>
+  <label for="customAccent">رنگ اکسنت:</label>
+  <input type="color" id="customAccent" value="#00ffff">
+  <label for="customBg">رنگ پس‌زمینه:</label>
+  <input type="color" id="customBg" value="#121212">
+  <label for="languageSelect">زبان:</label>
+  <select id="languageSelect">
+    <option value="fa">فارسی</option>
+    <option value="en">English</option>
+  </select>
+  <label for="cloudSync">همگام‌سازی ابری:</label>
+  <input type="checkbox" id="cloudSync">
+  <button onclick="saveSettings()">ذخیره</button>
+  <button onclick="closeSettings()">بستن</button>
+</div>
+
+<div id="editModal">
+  <h3>ویرایش پیام</h3>
+  <textarea id="editInput"></textarea>
+  <button onclick="saveEditedMessage()">ذخیره</button>
+  <button onclick="closeEditModal()">بستن</button>
+</div>
+
+<div id="previewModal">
+  <h3>پیش‌نمایش کد HTML</h3>
+  <iframe id="previewIframe" sandbox="allow-same-origin"></iframe>
+  <button onclick="closePreviewModal()">بستن</button>
+</div>
+
+<div id="mainContainer">
+  <div id="historySidebar">
+    <h3>🗂 تاریخچه</h3>
+    <div class="conversation-controls">
+      <button onclick="newConversation()"><i class="fas fa-plus"></i> مکالمه جدید</button>
+      <button onclick="clearHistory()"><i class="fas fa-trash"></i> پاک کردن</button>
+      <button onclick="shareConversation()"><i class="fas fa-share"></i> اشتراک</button>
+    </div>
+    <input type="text" id="historySearch" placeholder="جستجو در تاریخچه...">
+    <div id="historyContent"></div>
+  </div>
+
+  <div id="chatSection">
+    <button id="themeToggle"><i class="fas fa-moon"></i></button>
+    <button id="settingsBtn"><i class="fas fa-cog"></i></button>
+    <button id="fullscreenBtn"><i class="fas fa-expand"></i></button>
+    <header>🤖 RadBot</header>
+    <div id="chat"></div>
+    <div id="typingIndicator" style="display: none;">RadBot در حال تایپ است<span class="typing">...</span></div>
+    <div id="loading">در حال پردازش<span class="typing">...</span></div>
+    <div id="suggestions"></div>
+    <div id="inputBox">
+      <textarea id="input" rows="1" placeholder="پیام خود را بنویسید..." disabled></textarea>
+      <button id="sendBtn" onclick="sendMessage()" disabled><i class="fas fa-paper-plane"></i></button>
+      <button id="stopBtn" onclick="stopTyping()" style="display: none;"><i class="fas fa-stop"></i></button>
+    </div>
+    <footer>رادمهر ❤️</footer>
+  </div>
+</div>
+
+<script>
+  const API_URL = "https://api.gapgpt.app/v1/chat/completions";
+  const API_KEY = "sk-0T2xeU1JKJ1HaEudLwPRv9gHkAIA717dqItUpJgYFFytxmzI";
+  const CLOUD_API = "https://api.example.com/radbot/sync"; // جایگذاری با API واقعی
+  const ENCRYPTION_KEY = "RadBotSecretKey";
+  let conversations = [{ id: Date.now(), messages: [] }];
+  let currentConversationId = conversations[0].id;
+  let responseCache = new Map();
+  let offlineModel = null;
+  let editingMessageIndex = null;
+  let isTyping = false;
+
+  const translations = {
+    fa: {
+      welcome: "سلام! من RadBot هستم. می‌توانید پیام بنویسید.",
+      placeholder: "پیام خود را بنویسید...",
+      history: "تاریخچه",
+      newConversation: "مکالمه جدید",
+      clearHistory: "پاک کردن",
+      share: "اشتراک",
+      searchPlaceholder: "جستجو در تاریخچه...",
+      typing: "RadBot در حال تایپ است...",
+      processing: "در حال پردازش...",
+      settings: "تنظیمات",
+      theme: "انتخاب تم:",
+      customAccent: "رنگ اکسنت:",
+      customBg: "رنگ پس‌زمینه:",
+      language: "زبان:",
+      cloudSync: "همگام‌سازی ابری:",
+      save: "ذخیره",
+      close: "بستن",
+      error: "خطایی رخ داد. لطفاً دوباره امتحان کنید.",
+      offline: "حالت آفلاین: پاسخ‌ها از مدل محلی تولید می‌شوند.",
+      edit: "ویرایش",
+      copy: "کپی",
+      preview: "پیش‌نمایش"
+    },
+    en: {
+      welcome: "Hello! I'm RadBot. You can type a message.",
+      placeholder: "Type your message...",
+      history: "History",
+      newConversation: "New Conversation",
+      clearHistory: "Clear History",
+      share: "Share",
+      searchPlaceholder: "Search in history...",
+      typing: "RadBot is typing...",
+      processing: "Processing...",
+      settings: "Settings",
+      theme: "Select Theme:",
+      customAccent: "Custom Accent Color:",
+      customBg: "Custom Background Color:",
+      language: "Language:",
+      cloudSync: "Cloud Sync:",
+      save: "Save",
+      close: "Close",
+      error: "An error occurred. Please try again.",
+      offline: "Offline mode: Responses are generated from a local model.",
+      edit: "Edit",
+      copy: "Copy",
+      preview: "Preview"
+    }
+  };
+
+  let currentLanguage = localStorage.getItem('radbot-language') || 'fa';
+
+  function initCanvasBg() {
+    const canvas = document.getElementById('canvasBg');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = [];
+    for (let i = 0; i < 100; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        radius: Math.random() * 2 + 1
+      });
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      requestAnimationFrame(animate);
+    }
+    animate();
+  }
+
+  async function initOfflineModel() {
+    try {
+      const { pipeline } = await import('@xenova/transformers');
+      offlineModel = await pipeline('text-generation', 'distilgpt2');
+      console.log('Offline model loaded');
+    } catch (err) {
+      console.error('Failed to load offline model:', err);
+    }
+  }
+
+  function setInputState(enabled) {
+    document.getElementById("input").disabled = !enabled;
+    document.getElementById("sendBtn").disabled = !enabled;
+  }
+
+  async function appendMessage(role, text, instant = false, timestamp = new Date().toLocaleString('fa-IR', { hour: '2-digit', minute: '2-digit' }), index = null) {
+    const chat = document.getElementById("chat");
+    const msg = document.createElement("div");
+    msg.className = `msg ${role} animate__animated animate__fadeIn`;
+    msg.dataset.index = index !== null ? index : getCurrentConversation().messages.length;
+    msg.innerHTML = `<span class="timestamp">${timestamp}</span>${role === "user" ? "🧑: " : "🤖: "}`;
+    
+    const actions = document.createElement("div");
+    actions.className = "msg-actions";
+    const copyBtn = document.createElement("button");
+    copyBtn.textContent = translations[currentLanguage].copy;
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(text);
+      copyBtn.textContent = "✅";
+      setTimeout(() => copyBtn.textContent = translations[currentLanguage].copy, 2000);
+    };
+    actions.appendChild(copyBtn);
+
+    if (role === "user") {
+      const editBtn = document.createElement("button");
+      editBtn.textContent = translations[currentLanguage].edit;
+      editBtn.onclick = () => openEditModal(text, msg.dataset.index);
+      actions.appendChild(editBtn);
+    }
+
+    msg.appendChild(actions);
+    chat.appendChild(msg);
+
+    const blocks = splitByCodeBlocks(text);
+    isTyping = !instant;
+    if (role === "bot") {
+      document.getElementById("stopBtn").style.display = isTyping ? "block" : "none";
+    }
+
+    for (const block of blocks) {
+      if (block.type === "text") {
+        const markdownDiv = document.createElement("div");
+        markdownDiv.className = "markdown-body";
+        if (instant) {
+          markdownDiv.innerHTML = marked.parse(block.content);
+          msg.appendChild(markdownDiv);
+        } else {
+          const text = block.content;
+          for (let i = 0; i < text.length && isTyping; i++) {
+            markdownDiv.innerHTML = marked.parse(text.slice(0, i + 1));
+            msg.appendChild(markdownDiv);
+            await delay(15);
+            chat.scrollTop = chat.scrollHeight;
+          }
+          if (isTyping) {
+            markdownDiv.innerHTML = marked.parse(block.content);
+          }
+        }
+      } else if (block.type === "code") {
+        const pre = document.createElement("pre");
+        pre.className = "code-block";
+        pre.textContent = block.content;
+        const buttonContainer = document.createElement("div");
+        buttonContainer.className = "code-block-buttons";
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "copy-btn";
+        copyBtn.textContent = "📋 کپی";
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(block.content);
+          copyBtn.textContent = "✅ کپی شد!";
+          setTimeout(() => copyBtn.textContent = "📋 کپی", 2000);
+        };
+        buttonContainer.appendChild(copyBtn);
+
+        if (block.language === "html") {
+          const previewBtn = document.createElement("button");
+          previewBtn.className = "preview-btn";
+          previewBtn.textContent = translations[currentLanguage].preview;
+          previewBtn.onclick = () => openPreviewModal(block.content);
+          buttonContainer.appendChild(previewBtn);
+        }
+
+        pre.appendChild(buttonContainer);
+        chat.appendChild(pre);
+      }
+    }
+
+    chat.scrollTop = chat.scrollHeight;
+    if (role === "bot") {
+      setInputState(true);
+      isTyping = false;
+      document.getElementById("stopBtn").style.display = "none";
+      showNotification("RadBot", text.slice(0, 50) + "...");
+    }
+  }
+
+  function splitByCodeBlocks(text) {
+    const regex = /```(\w+)?\n([\s\S]*?)```/g;
+    let result, lastIndex = 0, parts = [];
+    while ((result = regex.exec(text)) !== null) {
+      if (result.index > lastIndex) {
+        parts.push({ type: "text", content: text.slice(lastIndex, result.index) });
+      }
+      parts.push({ type: "code", content: result[2], language: result[1] || "text" });
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+      parts.push({ type: "text", content: text.slice(lastIndex) });
+    }
+    return parts;
+  }
+
+  function delay(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  function stopTyping() {
+    isTyping = false;
+    document.getElementById("stopBtn").style.display = "none";
+    setInputState(true);
+    document.getElementById("typingIndicator").style.display = "none";
+  }
+
+  function openPreviewModal(htmlContent) {
+    const iframe = document.getElementById("previewIframe");
+    iframe.srcdoc = htmlContent;
+    document.getElementById("previewModal").style.display = "block";
+    document.getElementById("overlay").style.display = "block";
+  }
+
+  function closePreviewModal() {
+    document.getElementById("previewModal").style.display = "none";
+    document.getElementById("overlay").style.display = "none";
+    document.getElementById("previewIframe").srcdoc = "";
+  }
+
+  function encryptData(data) {
+    return CryptoJS.AES.encrypt(JSON.stringify(data), ENCRYPTION_KEY).toString();
+  }
+
+  function decryptData(data) {
+    const bytes = CryptoJS.AES.decrypt(data, ENCRYPTION_KEY);
+    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+  }
+
+  function saveHistory() {
+    const compressed = LZString.compressToUTF16(JSON.stringify(conversations));
+    localStorage.setItem("radbot-conversations", encryptData(compressed));
+    if (document.getElementById("cloudSync").checked) {
+      syncToCloud();
+    }
+  }
+
+  function loadHistory() {
+    const encrypted = localStorage.getItem("radbot-conversations");
+    if (encrypted) {
+      try {
+        const compressed = decryptData(encrypted);
+        conversations = JSON.parse(LZString.decompressFromUTF16(compressed));
+        currentConversationId = conversations[0]?.id || Date.now();
+        updateSidebar();
+      } catch (err) {
+        console.error('Failed to load history:', err);
+      }
+    }
+  }
+
+  async function syncToCloud() {
+    try {
+      await fetch(CLOUD_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversations: encryptData(conversations) })
+      });
+    } catch (err) {
+      console.error('Cloud sync failed:', err);
+    }
+  }
+
+  function getCurrentConversation() {
+    return conversations.find(conv => conv.id === currentConversationId) || conversations[0];
+  }
+
+  function updateSidebar(searchQuery = '') {
+    const historyDiv = document.getElementById("historyContent");
+    historyDiv.innerHTML = '';
+    conversations.forEach(conv => {
+      const userMessages = conv.messages.filter(msg => msg.role === 'user' && (!searchQuery || msg.content.includes(searchQuery)));
+      if (userMessages.length) {
+        const el = document.createElement("div");
+        el.className = `history-msg ${conv.id === currentConversationId ? 'active' : ''}`;
+        el.innerHTML = `${userMessages[0].content.slice(0, 40)}... <span class="timestamp">${userMessages[0].timestamp || 'نامشخص'}</span>`;
+        el.onclick = () => {
+          currentConversationId = conv.id;
+          showConversation(conv.id);
+          updateSidebar(searchQuery);
+        };
+        historyDiv.appendChild(el);
+      }
+    });
+  }
+
+  function showConversation(convId) {
+    const chat = document.getElementById("chat");
+    chat.innerHTML = '';
+    const conv = conversations.find(c => c.id === convId);
+    if (conv) {
+      const messages = conv.messages.slice(-50);
+      messages.forEach((msg, index) => {
+        appendMessage(msg.role, msg.content, true, msg.timestamp, index);
+      });
+    }
+  }
+
+  function newConversation() {
+    const newConv = { id: Date.now(), messages: [] };
+    conversations.unshift(newConv);
+    currentConversationId = newConv.id;
+    document.getElementById("chat").innerHTML = '';
+    updateSidebar();
+    limitHistory();
+  }
+
+  function clearHistory() {
+    if (confirm(translations[currentLanguage].clearHistory + "؟")) {
+      conversations = [{ id: Date.now(), messages: [] }];
+      currentConversationId = conversations[0].id;
+      document.getElementById("chat").innerHTML = '';
+      updateSidebar();
+      saveHistory();
+    }
+  }
+
+  function shareConversation() {
+    const conv = getCurrentConversation();
+    const shareData = {
+      title: 'RadBot Conversation',
+      text: conv.messages.map(m => `${m.role}: ${m.content}`).join('\n'),
+      url: window.location.href
+    };
+    if (navigator.share) {
+      navigator.share(shareData).catch(err => console.error('Share failed:', err));
+    } else {
+      navigator.clipboard.writeText(shareData.text);
+      alert('مکالمه در کلیپ‌بورد کپی شد!');
+    }
+  }
+
+  function limitHistory() {
+    if (conversations.length > 50) {
+      conversations = conversations.slice(0, 50);
+    }
+    conversations.forEach(conv => {
+      if (conv.messages.length > 100) {
+        conv.messages = conv.messages.slice(-100);
+      }
+    });
+  }
+
+  function openEditModal(text, index) {
+    editingMessageIndex = parseInt(index);
+    document.getElementById("editInput").value = text;
+    document.getElementById("editModal").style.display = "block";
+    document.getElementById("overlay").style.display = "block";
+  }
+
+  function closeEditModal() {
+    editingMessageIndex = null;
+    document.getElementById("editModal").style.display = "none";
+    document.getElementById("overlay").style.display = "none";
+  }
+
+  function saveEditedMessage() {
+    if (editingMessageIndex === null) return;
+    const newText = document.getElementById("editInput").value.trim();
+    if (!newText) return;
+
+    const conv = getCurrentConversation();
+    conv.messages[editingMessageIndex].content = newText;
+    conv.messages[editingMessageIndex].timestamp = new Date().toLocaleString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+    showConversation(currentConversationId);
+    saveHistory();
+    closeEditModal();
+  }
+
+  async function sendToGPT(message) {
+    document.getElementById("loading").style.display = 'block';
+    document.getElementById("typingIndicator").style.display = 'block';
+    setInputState(false);
+    const conv = getCurrentConversation();
+    conv.messages.push({ role: "user", content: message, timestamp: new Date().toLocaleString('fa-IR') });
+
+    try {
+      const cacheKey = `${currentConversationId}:${message}`;
+      if (responseCache.has(cacheKey)) {
+        const reply = responseCache.get(cacheKey);
+        conv.messages.push({ role: "assistant", content: reply, timestamp: new Date().toLocaleString('fa-IR') });
+        await appendMessage("bot", reply);
+        updateDocument();
+        return;
+      }
+
+      if (!navigator.onLine && offlineModel) {
+        const { generated_text } = await offlineModel.generate({ text: message, max_length: 50 });
+        conv.messages.push({ role: "assistant", content: generated_text, timestamp: new Date().toLocaleString('fa-IR') });
+        await appendMessage("bot", translations[currentLanguage].offline + "\n\n" + generated_text);
+        updateDocument();
+        return;
+      }
+
+      const body = {
+        model: "gpt-4o",
+        messages: conv.messages.map(({ role, content }) => ({ role, content }))
+      };
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        throw new Error(`API request failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+      const reply = data.choices[0].message.content;
+      responseCache.set(cacheKey, reply);
+      conv.messages.push({ role: "assistant", content: reply, timestamp: new Date().toLocaleString('fa-IR') });
+      await appendMessage("bot", reply);
+      updateDocument();
+    } catch (err) {
+      appendMessage("bot", `<div class="error-message">${translations[currentLanguage].error}: ${err.message}</div>`);
+      console.error('API error:', err);
+    } finally {
+      document.getElementById("loading").style.display = 'none';
+      document.getElementById("typingIndicator").style.display = 'none';
+      if (!isTyping) {
+        document.getElementById("stopBtn").style.display = "none";
+      }
+    }
+  }
+
+  function updateDocument() {
+    updateSidebar();
+    showSuggestions();
+    limitHistory();
+    saveHistory();
+  }
+
+  function sendMessage() {
+    const input = document.getElementById("input");
+    const message = input.value.trim();
+    if (!message) return;
+    appendMessage("user", message);
+    input.value = '';
+    sendToGPT(message);
+  }
+
+  function showSuggestions() {
+    const suggestionsDiv = document.getElementById("suggestions");
+    suggestionsDiv.innerHTML = '';
+    const conv = getCurrentConversation();
+    const lastMessage = conv.messages?.slice(-1)[0]?.content || '';
+    const suggestions = [
+      "لطفاً بیشتر توضیح بده.",
+      "این رو به زبان ساده‌تر بگو.",
+      "مثال بزن.",
+      "چه منابع دیگری پیشنهاد می‌کنی؟"
+    ].filter(s => !lastMessage.includes(s));
+    suggestions.forEach(s => {
+      const btn = document.createElement("div");
+      btn.className = "suggestion";
+      btn.textContent = s;
+      btn.onclick = () => {
+        document.getElementById("input").value = s;
+        sendMessage();
+      };
+      suggestionsDiv.appendChild(btn);
+    });
+  }
+
+  function showNotification(title, body) {
+    if (Notification.permission === "granted") {
+      new Notification(title, { body });
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          new Notification(title, { body });
+        }
+      });
+    }
+  }
+
+  function applyTheme(theme, accentColor = null, bgColor = null) {
+    document.body.classList.remove("light-theme", "custom-theme");
+    if (theme === 'light') {
+      document.body.classList.add("light-theme");
+      document.getElementById("themeToggle").innerHTML = '<i class="fas fa-moon"></i>';
+    } else if (theme === 'custom' && accentColor && bgColor) {
+      document.body.classList.add("custom-theme");
+      document.documentElement.style.setProperty('--accent-color', accentColor);
+      document.documentElement.style.setProperty('--bg-color', bgColor);
+      document.getElementById("themeToggle").innerHTML = '<i class="fas fa-paint-brush"></i>';
+    } else {
+      document.getElementById("themeToggle").innerHTML = '<i class="fas fa-sun"></i>';
+    }
+    localStorage.setItem("radbot-theme", theme);
+    if (accentColor) localStorage.setItem("radbot-accent", accentColor);
+    if (bgColor) localStorage.setItem("radbot-bg", bgColor);
+  }
+
+  function updateLanguage(lang) {
+    currentLanguage = lang;
+    localStorage.setItem('radbot-language', lang);
+    document.getElementById("input").placeholder = translations[currentLanguage].placeholder;
+    document.getElementById("historySidebar").querySelector("h3").textContent = `🗂 ${translations[currentLanguage].history}`;
+    document.getElementById("historySearch").placeholder = translations[currentLanguage].searchPlaceholder;
+    document.getElementById("loading").innerHTML = `${translations[currentLanguage].processing}<span class="typing">...</span>`;
+    document.getElementById("typingIndicator").innerHTML = `${translations[currentLanguage].typing}<span class="typing">...</span>`;
+    document.querySelector(".conversation-controls button:first-child").innerHTML = `<i class="fas fa-plus"></i> ${translations[currentLanguage].newConversation}`;
+    document.querySelector(".conversation-controls button:nth-child(2)").innerHTML = `<i class="fas fa-trash"></i> ${translations[currentLanguage].clearHistory}`;
+    document.querySelector(".conversation-controls button:last-child").innerHTML = `<i class="fas fa-share"></i> ${translations[currentLanguage].share}`;
+    document.getElementById("settingsModal").querySelector("h3").textContent = translations[currentLanguage].settings;
+    document.getElementById("settingsModal").querySelectorAll("label")[0].textContent = translations[currentLanguage].theme;
+    document.getElementById("settingsModal").querySelectorAll("label")[1].textContent = translations[currentLanguage].customAccent;
+    document.getElementById("settingsModal").querySelectorAll("label")[2].textContent = translations[currentLanguage].customBg;
+    document.getElementById("settingsModal").querySelectorAll("label")[3].textContent = translations[currentLanguage].language;
+    document.getElementById("settingsModal").querySelectorAll("label")[4].textContent = translations[currentLanguage].cloudSync;
+    document.getElementById("settingsModal").querySelectorAll("button")[0].textContent = translations[currentLanguage].save;
+    document.getElementById("settingsModal").querySelectorAll("button")[1].textContent = translations[currentLanguage].close;
+    document.getElementById("editModal").querySelector("h3").textContent = translations[currentLanguage].edit;
+    document.getElementById("editModal").querySelectorAll("button")[0].textContent = translations[currentLanguage].save;
+    document.getElementById("editModal").querySelectorAll("button")[1].textContent = translations[currentLanguage].close;
+    document.getElementById("previewModal").querySelector("h3").textContent = translations[currentLanguage].preview;
+    document.getElementById("previewModal").querySelector("button").textContent = translations[currentLanguage].close;
+  }
+
+  function openSettings() {
+    document.getElementById("settingsModal").style.display = "block";
+    document.getElementById("overlay").style.display = "block";
+    document.getElementById("themeSelect").value = localStorage.getItem("radbot-theme") || "dark";
+    document.getElementById("customAccent").value = localStorage.getItem("radbot-accent") || "#00ffff";
+    document.getElementById("customBg").value = localStorage.getItem("radbot-bg") || "#121212";
+    document.getElementById("languageSelect").value = currentLanguage;
+    document.getElementById("cloudSync").checked = localStorage.getItem("radbot-cloud") === 'true';
+  }
+
+  function closeSettings() {
+    document.getElementById("settingsModal").style.display = "none";
+    document.getElementById("overlay").style.display = "none";
+  }
+
+  function saveSettings() {
+    const theme = document.getElementById("themeSelect").value;
+    const accentColor = document.getElementById("customAccent").value;
+    const bgColor = document.getElementById("customBg").value;
+    const language = document.getElementById("languageSelect").value;
+    const cloudSync = document.getElementById("cloudSync").checked;
+    applyTheme(theme, accentColor, bgColor);
+    updateLanguage(language);
+    localStorage.setItem("radbot-cloud", cloudSync);
+    closeSettings();
+  }
+
+  document.getElementById("input").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  document.getElementById("historySearch").addEventListener("input", function () {
+    updateSidebar(this.value);
+  });
+
+  document.getElementById("themeToggle").onclick = () => {
+    const currentTheme = document.body.classList.contains("light-theme") ? 'light' : document.body.classList.contains("custom-theme") ? 'custom' : 'dark';
+    applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+  };
+
+  document.getElementById("overlay").onclick = () => {
+    closeSettings();
+    closeEditModal();
+    closePreviewModal();
+  };
+
+  document.getElementById("fullscreenBtn").onclick = () => {
+    document.body.classList.toggle("fullscreen");
+    document.getElementById("fullscreenBtn").innerHTML = document.body.classList.contains('fullscreen') ? '<i class="fas fa-compress"></i>' : '<i class="fas fa-expand"></i>';
+  };
+
+  window.onload = () => {
+    initCanvasBg();
+    initOfflineModel();
+    loadHistory();
+    const savedTheme = localStorage.getItem("radbot-theme") || "dark";
+    const savedAccent = localStorage.getItem("radbot-accent") || "#00cccc";
+    const savedBg = localStorage.getItem("radbot-bg") || "#121212";
+    applyTheme(savedTheme, savedAccent, savedBg);
+    updateLanguage(currentLanguage);
+    appendMessage('bot', translations[currentLanguage].welcome);
+    setTimeout(() => setInputState(true), 500);
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js').catch(err => console.error('Service Worker failed:', err));
+    }
+  };
+
+  window.addEventListener('beforeunload', (event) => {
+    if (!event.persisted) {
+      saveHistory();
+    }
+  });
+</script>
+
+</body>
+</html>
