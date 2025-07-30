@@ -1,0 +1,106 @@
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Tahoma, sans-serif;
+  background: #121212;
+  color: #fff;
+  direction: rtl;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  background: #1f1f1f;
+  text-align: center;
+  padding: 1rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00e676;
+}
+#chat {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.msg {
+  padding: 1rem;
+  border-radius: 10px;
+  max-width: 90%;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  opacity: 0;
+  animation: fadeIn 0.5s ease forwards;
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+.user {
+  background: rgba(0,255,150,0.2);
+  align-self: flex-end;
+  text-align: right;
+}
+.bot {
+  background: rgba(255,255,255,0.1);
+  align-self: flex-start;
+  text-align: left;
+}
+#loading {
+  display: none;
+  text-align: center;
+}
+#loading video {
+  border-radius: 12px;
+  box-shadow: 0 0 15px lime;
+  width: 220px;
+  height: 220px;
+}
+#inputBox {
+  display: flex;
+  background: #1e1e1e;
+  padding: 1rem;
+}
+textarea {
+  flex: 1;
+  padding: 0.7rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 10px;
+  resize: none;
+  background: #2a2a2a;
+  color: #fff;
+}
+button {
+  margin-right: 1rem;
+  padding: 0.8rem 1.2rem;
+  font-size: 1rem;
+  background: #00e676;
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}
+button:hover {
+  background: #1de9b6;
+}
+.mic-animate {
+  background: #00e676;
+  animation: pulse 1.2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0,230,118, 0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(0,230,118, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,230,118, 0); }
+}
+footer {
+  text-align: center;
+  padding: 0.6rem;
+  background: #1a1a1a;
+  color: #888;
+  font-size: 0.9rem;
+}

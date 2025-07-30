@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="en">
+<html dir="rtl" lang="fa">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, shrink-to-fit=no">
   <link href="images/favicon.png" rel="icon" />
-  <title>صفحه ورود به چت بات</title>
+  <title>ثبت نام</title>
   <meta name="description" content="Login and Register Form Html Template">
   <meta name="author" content="harnishdesign.net">
 
   <!-- Web Fonts -->
-  <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Rubik:300,300i,400,400i,500,500i,700,700i,900,900i' type='text/css'>
+  <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Rubik:300,400,500,700,900' type='text/css'>
 
   <!-- Stylesheet -->
   <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
@@ -22,12 +22,7 @@
 
 <!-- Preloader -->
 <div class="preloader preloader-dark">
-  <div class="lds-ellipsis">
-    <div></div>
-    <div></div>
-    <div></div>
-    <div></div>
-  </div>
+  <div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
 </div>
 
 <div id="main-wrapper" class="oxyy-login-register">
@@ -42,39 +37,33 @@
               <div class="hero-mask opacity-9 bg-dark"></div>
               <div class="hero-content">
                 <div class="logo mb-4">
-                  <a class="d-flex justify-content-center" href="index.html" title="Oxyy">
+                  <a class="d-flex justify-content-center" href="bot.html" title="Oxyy">
                     <img src="" alt="Rad bot">
                   </a>
                 </div>
 
-                <!-- فرم ورود با اکشن به bot.indx -->
-                <form id="loginForm" class="form-dark" method="post" action="bot.html">
+                <!-- فرم ثبت‌نام با اکشن مشخص -->
+                <form id="registerForm" class="form-dark" method="post" action="bot.html">
                   <div class="form-group icon-group">
-                    <input type="email" class="form-control" id="emailAddress" name="email" required placeholder="آدرس ایمیل">
+                    <input type="text" class="form-control" id="fullName" name="fullName" required placeholder="نام کامل">
+                    <span class="icon-inside"><i class="fas fa-user"></i></span>
+                  </div>
+
+                  <div class="form-group icon-group">
+                    <input type="email" class="form-control" id="emailAddress" name="emailAddress" required placeholder="آدرس ایمیل">
                     <span class="icon-inside"><i class="fas fa-envelope"></i></span>
                   </div>
 
                   <div class="form-group icon-group">
-                    <input type="password" class="form-control" id="loginPassword" name="password" required placeholder="رمز عبور">
+                    <input type="password" class="form-control" id="loginPassword" name="loginPassword" required placeholder="رمز عبور">
                     <span class="icon-inside"><i class="fas fa-lock"></i></span>
                   </div>
 
-                  <button class="btn btn-primary btn-block shadow-none mt-4 mb-3" type="submit">ورود</button>
+                  <button class="btn btn-primary btn-block mt-4 mb-3" type="submit">ثبت نام</button>
 
-                  <div class="row text-2 mt-4">
-                    <div class="col-sm">
-                      <div class="form-check custom-control custom-checkbox">
-                        <input id="remember-me" name="remember" class="custom-control-input" type="checkbox">
-                        <label class="custom-control-label text-light" for="remember-me">به خاطر سپردن</label>
-                      </div>
-                    </div>
-                    <div class="col-sm text-right">
-                      <a class="btn-link text-light" href="forgot-password.html">فراموشی رمز عبور؟</a>
-                    </div>
-                     <div class="col-sm text-right">
-                      <a class="btn-link text-light" href="bot.html" aria-setsize="12">مهمان</a>
-                    </div>
-                  </div>
+                  <p class="text-center text-muted text-2 mt-2 mb-0">
+                    شما قبول دارید <a class="btn-link text-light" href="#">قوانین</a> و <a class="btn-link text-light" href="#">سیاست حریم خصوصی</a>
+                  </p>
                 </form>
 
                 <div class="d-flex align-items-center mt-2 mb-3">
@@ -93,7 +82,7 @@
                 </div>
 
                 <p class="text-2 text-muted text-center mb-0">
-                  حساب ندارید؟ <a class="btn-link text-light text-3" href="register.html">ثبت نام</a>
+                  حساب کاربری دارید؟ <a class="btn-link text-light text-3" href="index.html">وارد شدن</a>
                 </p>
 
               </div>
